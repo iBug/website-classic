@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <!-- _layout: post -->
+    <!-- Begin Jekyll SEO tag v2.5.0 -->
+    <title>Alpha-Beta Pruning | iBug ①</title>
+    <meta name="generator" content="Jekyll v3.8.5" />
+    <meta property="og:title" content="Alpha-Beta Pruning" />
+    <meta name="author" content="iBug" />
+    <meta property="og:locale" content="en_US" />
+    <meta name="description" content="The boosting algorithm behind the heuristic searching in my Reversi game" />
+    <meta property="og:description" content="The boosting algorithm behind the heuristic searching in my Reversi game" />
+    <link rel="canonical" href="https://classic-ibugone.com/blog/2018/05/alpha-beta-pruning.html" />
+    <meta property="og:url" content="https://classic-ibugone.com/blog/2018/05/alpha-beta-pruning.html" />
+    <meta property="og:site_name" content="iBug ①" />
+    <meta property="og:type" content="article" />
+    <meta property="article:published_time" content="2018-05-23T00:00:00+00:00" />
+    <script type="application/ld+json">
+      {"headline":"Alpha-Beta Pruning","dateModified":"2018-05-23T00:00:00+00:00","datePublished":"2018-05-23T00:00:00+00:00","@type":"BlogPosting","mainEntityOfPage":{"@type":"WebPage","@id":"https://classic-ibugone.com/blog/2018/05/alpha-beta-pruning.html"},"url":"https://classic-ibugone.com/blog/2018/05/alpha-beta-pruning.html","author":{"@type":"Person","name":"iBug"},"description":"The boosting algorithm behind the heuristic searching in my Reversi game","@context":"http://schema.org"}
+    </script>
+    <!-- End Jekyll SEO tag -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#159A34">
+    <!-- https://fonts.googleapis.com/css?family=Open+Sans:400,700 -->
+    <link href='/assets/css/OpenSans.css' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="/assets/css/style.css?v=486d86433cc9ed4deba50bcfc082d1f528c933c4">
+    <link rel="shortcut icon" type="image/png" href="/assets/favicon.png">
+    <time class="dt-published" datetime="2018-05-23T00:00:00+00:00" itemprop="datePublished">
+      <script type="text/javascript" src="/assets/js/love.js" ></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS-MML_HTMLorMML" ></script>
+      <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+        	jax: ["input/TeX","output/HTML-CSS"],
+        	displayAlign: "left",
+        	displayIndent: "20px"
+        });
+      </script>
+    </head>
+    <body>
+      <nav>
+        <div class="nav-bg"></div>
+        <div class="nav-content hide-scrollbar">
+          <div class="nav-left">
+            <a href="/" class="nav-item home">iBug ①</a>
+            <a href="/blog/2018/05/python-reversi.html" class="nav-item">
+              &laquo; Previous
+            </a>
+            <a href="/blog/2018/06/minimal-complete-verifiable-example.html" class="nav-item">
+              Next &raquo;
+            </a>
+          </div>
+          <div class="nav-right">
+            <a href="/blog" class="nav-item">Blog</a>
+            <a href="/project" class="nav-item">Projects</a>
+          </div>
+        </div>
+      </nav>
+      <section class="page-header">
+        <h1 class="project-name">Alpha-Beta Pruning</h1>
+        <h2 class="project-tagline">The boosting algorithm behind the heuristic searching in my Reversi game</h2>
+        <h3 class="project-date"><time datetime="2018-05-23T00:00:00+00:00" itemprop="datePublished">May 23, 2018</time> &bull; iBug</h3>
+      </section>
+      <section class="main-content blog-post">
+        <article>
+          <p><a href="/p/6">As described in a previous article</a>, <em>Alpha-Beta pruning</em> can be used to speed up minimax heuristic searching by pruning branches that will never be reached.</p>
+          <p>A quick glance from <a href="https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning">Wikipedia</a>:</p>
+          <blockquote>
+            <p>It is an adversarial search algorithm used commonly for machine playing of two-player games (Tic-tac-toe, Chess, Go, etc.).
+              It stops completely evaluating a move when at least one possibility has been found that proves the move to be worse than a previously examined move.</p>
+          </blockquote>
+          <h1 id="alpha-beta-pruning">Alpha-Beta pruning</h1>
+          <p>The alpha-beta pruning algorithm is based on the fact that one side wants to maximize the evaluated score, while the other wants to minimize it. Both sides are later referred to as Max and Min.</p>
+          <p>The algorithm maintains two values, alpha and beta, which represent the minimum score Max is assured of, and the maximum score Min is assured of, respectively. The values start at the “worst state”, i.e., <script type="math/tex">
+              \alpha=-\infty
+            </script> and <script type="math/tex">
+              \beta=+\infty
+            </script>. Whenever it goes to a point where <script type="math/tex">
+              \alpha\gt\beta
+            </script>, we know that this branch need not be examined as it will never be reached, given that both sides have found out that it’s no better (or worse) than a known, assured branch.</p>
+          <p>This image from Wikipedia demonstrates it well:</p>
+          <p><img src="/image/ab-pruning-wikipedia.png" alt="Image sourced from Wikipedia" /></p>
+          <p>Let’s call the above tree “Levels 0 to 4”, where Level 0 contains only one node, the root node, and it’s where the searching starts.
+            Levels 1 to 4 contains 3, 5, 7, 9 white nodes each. Greyed-out nodes are pruned by the alpha-beta algorithm. The numbers on the nodes are the best (maximum or minimum) score assured at this branch.</p>
+          <p>The tree is searched from left to right. It first completes the leftmost two nodes at level 4 and backtracks to the first node at level 2. At this time at the level 2 node, both sides know that this branch can assure Max of a minimum score of 5. The searching then goes to the second node at level 3, and it finds that this node can assure Min of a score of 4, which is lower than the minimum that Max has been assured of. This means that Max will not choose this branch if the game has reached the first node at level 2, and we can safely cut off the searching here (prune this branch).</p>
+          <p>Then we goes to the second node at level 2, and for Min it’s a better branch, so Min will choose this path. No pruning is happening here.</p>
+          <p>After completing the first two branches at level 1, the search goes to the last branch at level 1. It finds that this branch can assure Min of 5, which is, to Max, worse than what it has been assured of (6 from the 2nd branch), so the rest of this branch is cut off. The final result is that Max will pick the 2nd branch at level 1.</p>
+          <h1 id="heuristic-searching-with-alpha-beta-pruning">Heuristic searching with alpha-beta pruning</h1>
+          <p>Here’s the pseudo-code in the previous post that demonstrates a plain heuristic searching algorithm.</p>
+          <div class="language-javascript highlighter-rouge">
+            <div class="highlight">
+              <pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+</pre>
+            </td>
+            <td class="rouge-code">
+              <pre><span class="kd">function</span> <span class="nx">heuristicSearch</span><span class="p">(</span><span class="nx">game</span><span class="p">,</span> <span class="nx">side</span><span class="p">,</span> <span class="nx">depth</span><span class="p">)</span>
+  <span class="k">if</span> <span class="nx">depth</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="kc">null</span><span class="p">,</span> <span class="nx">heuristicScore</span><span class="p">(</span><span class="nx">game</span><span class="p">)</span>
+
+  <span class="nx">want_max</span> <span class="o">=</span> <span class="p">(</span><span class="nx">side</span> <span class="o">==</span> <span class="nx">BLACK</span><span class="p">)</span>
+  <span class="nx">bestMove</span> <span class="o">=</span> <span class="kc">null</span>
+  <span class="k">if</span> <span class="nx">want_max</span>
+    <span class="nx">bestScore</span> <span class="o">=</span> <span class="o">-</span><span class="nx">MAX</span> <span class="o">-</span> <span class="mi">1</span>
+  <span class="k">else</span>
+    <span class="nx">bestScore</span> <span class="o">=</span> <span class="o">+</span><span class="nx">MAX</span> <span class="o">+</span> <span class="mi">1</span>
+
+  <span class="k">for</span> <span class="nx">move</span> <span class="k">in</span> <span class="nx">game</span><span class="p">.</span><span class="nx">availableMoves</span>
+    <span class="nx">game</span><span class="p">.</span><span class="nx">perform</span> <span class="nx">move</span>
+    <span class="c1">// Recurse</span>
+    <span class="nx">subMove</span><span class="p">,</span> <span class="nx">subScore</span> <span class="o">=</span> <span class="nx">heuristicSearch</span><span class="p">(</span><span class="nx">game</span><span class="p">,</span> <span class="nx">side</span><span class="p">,</span> <span class="nx">depth</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="nx">game</span><span class="p">.</span><span class="nx">undo</span>
+
+    <span class="k">if</span> <span class="nx">want_max</span>
+      <span class="k">if</span> <span class="nx">subScore</span> <span class="o">&gt;</span> <span class="nx">bestScore</span>
+        <span class="nx">bestScore</span> <span class="o">=</span> <span class="nx">subScore</span>
+        <span class="nx">bestMove</span> <span class="o">=</span> <span class="nx">move</span>
+    <span class="k">else</span>
+      <span class="k">if</span> <span class="nx">subScore</span> <span class="o">&lt;</span> <span class="nx">bestScore</span>
+        <span class="nx">bestScore</span> <span class="o">=</span> <span class="nx">subScore</span>
+        <span class="nx">bestMove</span> <span class="o">=</span> <span class="nx">move</span>
+  <span class="k">return</span> <span class="nx">bestMove</span><span class="p">,</span> <span class="nx">bestScore</span>
+</pre>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </code></pre>
+</div>
+</div>
+<p>To add alpha-beta pruning, as described above, we need to maintain two values, α and β, and cut off searching when α&gt;β.</p>
+<div class="language-javascript highlighter-rouge">
+  <div class="highlight">
+    <pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+</pre>
+  </td>
+  <td class="rouge-code">
+    <pre><span class="kd">function</span> <span class="nx">heuristicSearch</span><span class="p">(</span><span class="nx">game</span><span class="p">,</span> <span class="nx">side</span><span class="p">,</span> <span class="nx">depth</span><span class="p">,</span> <span class="nx">alpha</span><span class="p">,</span> <span class="nx">beta</span><span class="p">)</span>
+  <span class="k">if</span> <span class="nx">depth</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="kc">null</span><span class="p">,</span> <span class="nx">heuristicScore</span><span class="p">(</span><span class="nx">game</span><span class="p">)</span>
+
+  <span class="nx">want_max</span> <span class="o">=</span> <span class="p">(</span><span class="nx">side</span> <span class="o">==</span> <span class="nx">BLACK</span><span class="p">)</span>
+  <span class="nx">bestMove</span> <span class="o">=</span> <span class="kc">null</span>
+  <span class="k">if</span> <span class="nx">want_max</span>
+    <span class="nx">bestScore</span> <span class="o">=</span> <span class="o">-</span><span class="nx">MAX</span> <span class="o">-</span> <span class="mi">1</span>
+  <span class="k">else</span>
+    <span class="nx">bestScore</span> <span class="o">=</span> <span class="o">+</span><span class="nx">MAX</span> <span class="o">+</span> <span class="mi">1</span>
+
+  <span class="k">for</span> <span class="nx">move</span> <span class="k">in</span> <span class="nx">game</span><span class="p">.</span><span class="nx">availableMoves</span>
+    <span class="nx">game</span><span class="p">.</span><span class="nx">perform</span> <span class="nx">move</span>
+    <span class="c1">// Recurse</span>
+    <span class="nx">subMove</span><span class="p">,</span> <span class="nx">subScore</span> <span class="o">=</span> <span class="nx">heuristicSearch</span><span class="p">(</span><span class="nx">game</span><span class="p">,</span> <span class="nx">side</span><span class="p">,</span> <span class="nx">depth</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">alpha</span><span class="p">,</span> <span class="nx">beta</span><span class="p">)</span>
+    <span class="nx">game</span><span class="p">.</span><span class="nx">undo</span>
+
+    <span class="k">if</span> <span class="nx">want_max</span>
+      <span class="k">if</span> <span class="nx">subScore</span> <span class="o">&gt;</span> <span class="nx">bestScore</span>
+        <span class="nx">bestScore</span> <span class="o">=</span> <span class="nx">subScore</span>
+        <span class="nx">bestMove</span> <span class="o">=</span> <span class="nx">move</span>
+      <span class="nx">alpha</span> <span class="o">=</span> <span class="nx">max</span><span class="p">(</span><span class="nx">alpha</span><span class="p">,</span> <span class="nx">bestScore</span><span class="p">)</span>
+      <span class="k">if</span> <span class="nx">alpha</span> <span class="o">&gt;=</span> <span class="nx">beta</span>
+        <span class="k">break</span>  <span class="c1">// alpha cut</span>
+    <span class="k">else</span>
+      <span class="k">if</span> <span class="nx">subScore</span> <span class="o">&lt;</span> <span class="nx">bestScore</span>
+        <span class="nx">bestScore</span> <span class="o">=</span> <span class="nx">subScore</span>
+        <span class="nx">bestMove</span> <span class="o">=</span> <span class="nx">move</span>
+      <span class="nx">beta</span> <span class="o">=</span> <span class="nx">min</span><span class="p">(</span><span class="nx">beta</span><span class="p">,</span> <span class="nx">bestScore</span><span class="p">)</span>
+      <span class="k">if</span> <span class="nx">alpha</span> <span class="o">&gt;=</span> <span class="nx">beta</span>
+        <span class="k">break</span>  <span class="c1">// beta cut</span>
+  <span class="k">return</span> <span class="nx">bestMove</span><span class="p">,</span> <span class="nx">bestScore</span>
+</pre>
+  </td>
+</tr>
+</tbody>
+</table>
+</code></pre>
+</div>
+</div>
+<p>Since α and β are passed down to deeper recursive searches, they need initial values. The modified function should be called like</p>
+<div class="language-javascript highlighter-rouge">
+  <div class="highlight">
+    <pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre>
+  </td>
+  <td class="rouge-code">
+    <pre><span class="nx">heuristicSearch</span><span class="p">(</span><span class="nx">game</span><span class="p">,</span> <span class="nx">side</span><span class="p">,</span> <span class="nx">depth</span><span class="p">,</span> <span class="o">-</span><span class="nx">INF</span><span class="p">,</span> <span class="nx">INF</span><span class="p">)</span>
+</pre>
+  </td>
+</tr>
+</tbody>
+</table>
+</code></pre>
+</div>
+</div>
+<h1 id="optimization">Optimization</h1>
+<p>As seen in the image from Wikipedia:</p>
+<p><img src="/image/ab-pruning-wikipedia.png" alt="Image from Wikipedia" /></p>
+<p>We can see that if the 2nd node at level 2 is examined earlier, the 1st node would have been pruned. We want to find a way to make pruning occur more often, further improving the performance of the algorithm.</p>
+<p>In most typical games, a partially good move often leads to better subsequences, and vice versa. This fact implies that we can sort the current steps we’re going deep into, and search better moves first. Worse moves will likely be pruned more often. This leads to a small change in the code:</p>
+<div class="language-javascript highlighter-rouge">
+  <div class="highlight">
+    <pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+</pre>
+  </td>
+  <td class="rouge-code">
+    <pre><span class="kd">function</span> <span class="nx">heuristicSearch</span><span class="p">(</span><span class="nx">game</span><span class="p">,</span> <span class="nx">side</span><span class="p">,</span> <span class="nx">depth</span><span class="p">,</span> <span class="nx">alpha</span><span class="p">,</span> <span class="nx">beta</span><span class="p">)</span>
+  <span class="k">if</span> <span class="nx">depth</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="kc">null</span><span class="p">,</span> <span class="nx">heuristicScore</span><span class="p">(</span><span class="nx">game</span><span class="p">)</span>
+
+  <span class="nx">want_max</span> <span class="o">=</span> <span class="p">(</span><span class="nx">side</span> <span class="o">==</span> <span class="nx">BLACK</span><span class="p">)</span>
+  <span class="nx">bestMove</span> <span class="o">=</span> <span class="kc">null</span>
+  <span class="k">if</span> <span class="nx">want_max</span>
+    <span class="nx">bestScore</span> <span class="o">=</span> <span class="o">-</span><span class="nx">MAX</span> <span class="o">-</span> <span class="mi">1</span>
+  <span class="k">else</span>
+    <span class="nx">bestScore</span> <span class="o">=</span> <span class="o">+</span><span class="nx">MAX</span> <span class="o">+</span> <span class="mi">1</span>
+
+  <span class="nx">moves</span> <span class="o">=</span> <span class="nx">game</span><span class="p">.</span><span class="nx">availableMoves</span>
+  <span class="c1">// ↓↓↓</span>
+  <span class="nx">sort</span> <span class="nx">moves</span> <span class="nx">by</span> <span class="nx">heuristicScore</span><span class="p">(</span><span class="nx">after</span> <span class="nx">move</span><span class="p">)</span>
+  <span class="c1">// ↑↑↑</span>
+
+  <span class="k">for</span> <span class="nx">move</span> <span class="k">in</span> <span class="nx">sorted_moves</span>
+    <span class="nx">game</span><span class="p">.</span><span class="nx">perform</span> <span class="nx">move</span>
+    <span class="c1">// Recurse</span>
+    <span class="nx">subMove</span><span class="p">,</span> <span class="nx">subScore</span> <span class="o">=</span> <span class="nx">heuristicSearch</span><span class="p">(</span><span class="nx">game</span><span class="p">,</span> <span class="nx">side</span><span class="p">,</span> <span class="nx">depth</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">alpha</span><span class="p">,</span> <span class="nx">beta</span><span class="p">)</span>
+    <span class="nx">game</span><span class="p">.</span><span class="nx">undo</span>
+
+    <span class="k">if</span> <span class="nx">want_max</span>
+      <span class="k">if</span> <span class="nx">subScore</span> <span class="o">&gt;</span> <span class="nx">bestScore</span>
+        <span class="nx">bestScore</span> <span class="o">=</span> <span class="nx">subScore</span>
+        <span class="nx">bestMove</span> <span class="o">=</span> <span class="nx">move</span>
+      <span class="nx">alpha</span> <span class="o">=</span> <span class="nx">max</span><span class="p">(</span><span class="nx">alpha</span><span class="p">,</span> <span class="nx">bestScore</span><span class="p">)</span>
+      <span class="k">if</span> <span class="nx">alpha</span> <span class="o">&gt;=</span> <span class="nx">beta</span>
+        <span class="k">break</span>  <span class="c1">// alpha cut</span>
+    <span class="k">else</span>
+      <span class="k">if</span> <span class="nx">subScore</span> <span class="o">&lt;</span> <span class="nx">bestScore</span>
+        <span class="nx">bestScore</span> <span class="o">=</span> <span class="nx">subScore</span>
+        <span class="nx">bestMove</span> <span class="o">=</span> <span class="nx">move</span>
+      <span class="nx">beta</span> <span class="o">=</span> <span class="nx">min</span><span class="p">(</span><span class="nx">beta</span><span class="p">,</span> <span class="nx">bestScore</span><span class="p">)</span>
+      <span class="k">if</span> <span class="nx">alpha</span> <span class="o">&gt;=</span> <span class="nx">beta</span>
+        <span class="k">break</span>  <span class="c1">// beta cut</span>
+  <span class="k">return</span> <span class="nx">bestMove</span><span class="p">,</span> <span class="nx">bestScore</span>
+</pre>
+  </td>
+</tr>
+</tbody>
+</table>
+</code></pre>
+</div>
+</div>
+<h1 id="code">Code</h1>
+<p>The whole project of the Python Reversi is <a href="https://github.com/iBug/PyReversi">open-source at GitHub</a>. The AI algorithm is written in <a href="https://github.com/iBug/PyReversi/tree/e340e9609dfa3f61419f4e8cb9e03248be52e3bc/ai.py#L145">file <code class="highlighter-rouge">ai.py</code></a>.</p>
+</article>
+<span class="post-tags">
+  <b>Tags: </b>
+  <a href="/tags/algorithm" class="tag">algorithm</a>
+  <a href="/tags/study-notes" class="tag">study-notes</a>
+</span>
+<footer class="site-footer">
+  <span class="site-footer-credits">
+    <div>
+      <span style="float:left;padding-left:10px;height:0px;">
+        <a href="/blog/2018/05/python-reversi.html">&laquo; Previous</a>
+      </span>
+      <span style="float:right;padding-right:10px;height:0px;">
+        <a href="/blog/2018/06/minimal-complete-verifiable-example.html">Next &raquo;</a>
+      </span>
+    </div>
+    <div align="center">
+      <p><a href="/blog"><b>Return to index</b></a></p>
+      <p>Link to this article: <a href="https://classic-ibugone.com/p/7">https://classic-ibugone.com/p/7</a></p>
+      <p><small>Content licensed under the <a href="https://creativecommons.org/licenses/by-sa/3.0/">CC BY-SA 3.0 license</a>. Attribution required.</small></p>
+    </div>
+  </span>
+</footer>
+</section>
+<script type="text/javascript" src="/assets/js/line.js" ></script>
+<script type="text/javascript">
+  var navbar = document.getElementById("navbar");
+  var sticky = navbar.offsetTop;
+  window.onscroll = function() {
+  	if (window.pageYOffset >= sticky) {
+  		navbar.classList.add("sticky")
+  	} else {
+  		navbar.classList.remove("sticky");
+  	}
+  }
+</script>
+<script type="text/javascript">
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  		m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  
+  ga('create', 'UA-115907213-1', 'auto');
+  ga('send', 'pageview');
+</script>
+</body>
+</html>
