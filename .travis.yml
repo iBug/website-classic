@@ -1,0 +1,23 @@
+dist: xenial
+language: ruby
+rvm: "2.5.3"
+cache: bundler
+sudo: false
+
+git:
+  depth: 1
+  submodules: false
+
+env:
+  - JEKYLL_ENV=production LC_ALL=C.UTF-8
+
+before_script:
+  - script/prepare.sh
+
+script:
+  - ruby script/cv.rb
+  - bundle exec jekyll build
+
+after_success:
+  - script/patch.sh
+  - script/deploy-travis.sh

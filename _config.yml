@@ -1,0 +1,92 @@
+title: "iBug ①"
+description: The small personal site for iBug (classic)
+url: https://classic-ibugone.com
+baseurl: ""
+source_url: https://github.com/iBug/iBug-source
+theme_color: "#159A34"
+
+author: iBug
+index_url: /blog
+permalink: /blog/:year/:month/:title.html
+
+#date_format: "%b %-d, %Y at %-H:%M"
+date_format: "%b %-d, %Y"
+timezone: UTC
+
+exclude: ["Gemfile", "Gemfile.lock", "node_modules", "vendor/", "README.md", "REMOTE_README.md"]
+keep_files: [".git", ".nojekyll", "README.md", "CNAME"]
+
+plugins:
+  # Class 1: Default plugins on GitHub Pages
+  - jekyll-gist
+  - jekyll-github-metadata
+  #- jekyll-paginate
+  - jekyll-relative-links
+  - jekyll-optional-front-matter
+  #- jekyll-readme-index
+  - jekyll-default-layout
+  - jekyll-titles-from-headings
+
+  # Class 2: Optional plugins on GitHub Pages
+  - jekyll-redirect-from
+  - jekyll-mentions
+  - jekyll-seo-tag
+  #- jekyll-coffeescript
+
+  # Class 3: Not supported by GitHub Pages
+  # Use Gemfile
+
+#paginate: 5
+#paginate_path: "/blog/page:num/"
+pagination:
+  enabled: true
+  per_page: 5
+  permalink: "/page:num/"
+  title: ":title - :num of :max"
+  sort_field: "date"
+  sort_reverse: true
+  trail:
+    before: 3
+    after: 3
+
+tag_page_layout: tag_page
+tag_page_dir: tags
+
+assets:
+  compression: true
+
+# Don't mistake this for Jekyll's "defaults" key!
+default:
+  post_tagline: "Brought to you by iBug"
+
+defaults:
+  -
+    scope:
+      path: "cn"
+    values:
+      lang: "zh-CN"
+
+markdown: kramdown
+highlighter: rouge
+
+kramdown:
+  auto_ids: true
+  math_engine: mathjax
+  parse_block_html: true
+
+  input: GFM
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    css_class: 'highlight'
+    span:
+      line_numbers: false
+    block:
+      line_numbers: true
+      start_line: 1
+
+social:
+  links:
+    - https://stackoverflow.com/users/5958455
+  lang: en_US
+
+google_analytics: UA-115907213-1

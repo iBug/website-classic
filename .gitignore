@@ -1,0 +1,21 @@
+# Automatically generated from data files
+/cv.md
+
+.svn
+.sass-cache
+
+# Other resources on GH Pages
+/cdn
+/ext
+/image
+
+# Bundler
+Gemfile.lock
+/vendor
+
+# Jekyll
+_site
+
+# Jekyll Plugins
+.git-metadata
+.jekyll-metadata
